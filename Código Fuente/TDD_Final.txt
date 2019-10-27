@@ -1,0 +1,259 @@
+#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
+#include "catch.hpp"
+#include <iostream>
+#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
+#include <stdlib.h>
+#include <windows.h>
+#include <conio.h>
+#include <list>
+
+using namespace std;
+
+int puntos=0;
+
+MODELO
+class GameData
+{
+    int x, y;
+
+    unsigned int opcion;
+    HANDLE hCon;
+    COORD dwPos;
+    CONSOLE_CURSOR_INFO cci;
+
+public:
+    void gotoxy (int x, int y)
+    {
+        this->hCon = GetStdHandle(STD_OUTPUT_HANDLE);
+        this->dwPos.X=x;
+        this->dwPos.Y=y;
+
+        SetConsoleCursorPosition(hCon, dwPos);
+    }
+
+    void HideCursor ()
+    {
+        this->hCon = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        this->cci.dwSize=2;
+        this->cci.bVisible=FALSE;
+
+        SetConsoleCursorInfo(hCon, &cci);
+    }
+};
+
+class NAVE : public GameData
+{
+    int x, y;
+    int heart;
+    int life;
+
+public:
+    NAVE (int nax, int nay)
+    {
+        this->x=nax;
+        this->y=nay;
+        this->heart=3;
+        this->life=3;
+    }
+    void pintar()
+    {
+        gotoxy(x,y);
+        printf("  %c", 94);
+        gotoxy(x, y+1);
+        printf(" %c%c%c", 47, 254, 92);
+        gotoxy(x, y+2);
+        printf(" %c %c", 223, 223);
+    }
+    void borrar()
+    {
+        gotoxy(x, y);
+        printf("      ");
+        gotoxy(x, y+1);
+        printf("      ");
+        gotoxy(x, y+2);
+        printf("      ");
+    }
+    void mover()
+    {
+        if (kbhit())
+        {
+            char tecla=getch();
+            borrar();
+
+            if(tecla==LEFT && x>3)
+            {
+                x--;
+            }
+            else if (tecla==RIGHT && x+6<117)
+            {
+                x++;
+            }
+            else if (tecla==UP && y>4)
+            {
+                y--;
+            }
+            else if (tecla==DOWN && y+3<31)
+            {
+                y++;
+            }
+            pintar();
+            SeeHearts();
+        }
+        Sleep(30);
+    }
+    void SeeHearts()
+    {
+        gotoxy(100,2);
+        printf("SALUD");
+        gotoxy(106,2);
+        printf("      ");
+
+        for(int i=0; i<heart; i++)
+        {
+            gotoxy(106+i,2);
+            printf("%c",207);
+        }
+        gotoxy(80,2);
+        printf("VIDAS %d",life);
+    }
+    void Die()
+    {
+        if (heart==0)
+        {
+            borrar();
+            gotoxy(x,y);
+            printf("******");
+            gotoxy(x,y+1);
+            printf(" BOOM ");
+            gotoxy(x,y+2);
+            printf("******");
+            Sleep(200);
+            borrar();
+
+            life--;
+            heart=3;
+            SeeHearts();;
+            pintar();
+        }
+    }
+    void hearts()
+    {
+        this->heart--;
+    }
+    int getLife()
+    {
+        return life;
+    }
+    int getX()
+    {
+        return x;
+    }
+    int getY()
+    {
+        return y;
+    }
+};
+class AST : public GameData
+{
+    int x, y;
+
+public:
+    AST (int asx, int asy)
+    {
+        this->x=asx;
+        this->y=asy;
+    }
+    void paint()
+    {
+        gotoxy(x,y);
+        printf("%c",184);
+    }
+    void moveit()
+    {
+        gotoxy(x,y);
+        printf("  ");
+        y++;
+        if(y>30)
+        {
+            x=rand()%113+3;
+            y=4;
+        }
+        paint();
+    }
+    void crash(NAVE &N)
+    {
+        if(x>=N.getX() && x<=N.getX()+4 && y>=N.getY() && y<=N.getY()+2)
+        {
+            N.hearts();
+            N.borrar();
+            N.pintar();
+            N.SeeHearts();
+
+            x=rand()%113+3;
+            y=4;
+        }
+    }
+    int getX()
+    {
+        return x;
+    }
+    int getY()
+    {
+        return y;
+    }
+};
+
+class BULLET : public GameData
+{
+    int x, y;
+public:
+    BULLET(int bux, int buy)
+    {
+        this->x=bux;
+        this->y=buy;
+    }
+    void mover ()
+    {
+        gotoxy(x, y);
+        printf("  ");
+        y--;
+        gotoxy(x,y);
+        printf("*");
+    }
+    bool fuera()
+    {
+        if(y==4)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    int getX()
+    {
+        return x;
+    }
+    int getY()
+    {
+        return y;
+    }
+};
+
+TEST_CASE( "evaluar clase NAVE y BULLET", "[NAVE, BULLET]" ) {
+    NAVE ship= NAVE (4,5);
+
+    REQUIRE(ship.getLife() == 3 );
+    REQUIRE(ship.getX() == 4 );
+    REQUIRE(ship.getY() == 5 );
+    
+    BULLET bala = BULLET (3,2);
+
+    REQUIRE( bala.fuera() == false );
+    REQUIRE( bala.getX() == 3 );
+    REQUIRE( bala.getY() == 2 );
+}
